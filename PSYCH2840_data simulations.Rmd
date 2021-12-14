@@ -1,0 +1,434 @@
+---
+title: "PSYCH2840 Data Simulations"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Week 3: Sample size and statistical validity
+
+I have simulated data to show the importance of sample size for statistical validity. In psychology, we generally use a sample of our population of interest even though we want to make claims about the population (because we usually can't test the entire population. 
+
+For example, maybe I sampled 100 people about their ice cream preferences, and found that 26% of people I sampled prefer vanilla ice cream over chocolate. In this case, 26% is my estimate of the population. Our estimation of the population usually involves some amount of error - we could be off by 2% or 10% or sometimes even more than that!
+
+Sometimes we can get extreme values (or outliers) by chance, and these values impact our estimation of the population value much more when we have smaller samples than when we have a larger sample.
+
+We can see how this happens by simulating data where we know the true population value. 
+
+When rolling two die and adding the values together, we know the probability of each outcome (e.g., the most likely value is 7). We also know it is much more likely that we would roll a 7 compared to a 2 or 11, but only slightly more likely to roll a 7 compared to a 6 or 8.
+
+Here is the probability distribution for rolling two fair dies and summing the total. 
+
+```{r probability distribution}
+library(ggplot2)
+
+sum = c(2,3,4,5,6,7,8,9,10,11,12)
+
+probability = c(1/36,2/36,3/36,4/36,5/36,6/36,5/36,4/36,3/36,2/36,1/36)
+
+expected = sum(sum * probability)
+
+
+prob = data.frame(sum,probability)
+prob$sum = as.factor(prob$sum)
+
+
+ggplot(data = prob, aes(x = sum, y = probability)) +
+  geom_col(fill="#00AFBB") + xlab("Sum of two Dice") + ylab("Probability") 
+
+
+```
+
+Given this distribution, if I were to roll two dies and summed the values many many times, and took the average value of all of those samples, I would expect to get `r expected`. We can think of `r expected` as the mean in our population. 
+
+What happens when we sample from our population?
+
+
+Let's start by simulating 10 rolls of two die. This is one outcome:
+
+```{r rolling die, echo=TRUE}
+
+set.seed(15)
+#Now let's try rolling two dice 10 times
+sums = c(sample(1:6,10,replace=TRUE)+sample(1:6,10,replace=TRUE))
+sums = data.frame(sums)
+
+xbar = mean(sums$sums)
+
+ggplot(sums, aes(sums)) + geom_bar(fill = '#00AFBB')+
+  scale_x_continuous(breaks=seq(2,12)) + xlab('Sum of Die') + ylab('Count')
+
+
+
+```
+<br>
+With these first 10 rolls, we can see that our distribution doesn't look very much like a known population distribution (our mean value is = `r xbar`). We actually got 2 and 11 at the same frequency as 7... which is not what we would expect given the probability distribution.
+
+What if we were to roll the two die ten times again?
+
+
+```{r rolling die 2, echo=TRUE}
+
+set.seed(10)
+
+sums = c(sample(1:6,10,replace=TRUE)+sample(1:6,10,replace=TRUE))
+sums = data.frame(sums)
+
+xbar = mean(sums$sums)
+
+ggplot(sums, aes(sums)) + geom_bar(fill = '#00AFBB')+
+  scale_x_continuous(breaks=seq(2,12)) + xlab('Sum of die rolls') + ylab('Count')
+
+
+```
+<br>
+
+This distribution looks a bit more like our population distribution (our mean = `r xbar`). The most freqeunt outcome was 7, and our mean is slightly closer to our expected mean. 
+
+What if we were to sample 100 die rolls?
+
+```{r rolling die 3, echo=TRUE}
+
+set.seed(10)
+
+sums = c(sample(1:6,100,replace=TRUE)+sample(1:6,100,replace=TRUE))
+sums = data.frame(sums)
+
+xbar = mean(sums$sums)
+
+ggplot(sums, aes(sums)) + geom_bar(fill = '#00AFBB')+
+  scale_x_continuous(breaks=seq(2,12)) + xlab('Sum of die rolls') + ylab('Count')
+
+
+```
+<br>
+Now the sample distribution is starting to look more like our population distribution (our mean = `r xbar`). Even though we did roll more 11's than we would expect given the probability distribution, these values have less of an impact on our overall mean because we have many more observations then we did in the previous example. 
+
+Let's roll the dice another 1000 times
+
+```{r rolling die 4, echo=TRUE}
+
+set.seed(10)
+
+sums = c(sample(1:6,1000,replace=TRUE)+sample(1:6,1000,replace=TRUE))
+sums = data.frame(sums)
+
+xbar = mean(sums$sums)
+
+ggplot(sums, aes(sums)) + geom_bar(fill = '#00AFBB')+
+  scale_x_continuous(breaks=seq(2,12)) + xlab('Sum of die rolls') + ylab('Count')
+
+
+```
+<br>
+This distribution looks a lot more like our population distribution (our mean = `r xbar`). But was it just a fluke? Let's roll it another 1000 times.
+
+```{r rolling die 5, echo=TRUE}
+
+set.seed(100)
+
+sums = c(sample(1:6,1000,replace=TRUE)+sample(1:6,1000,replace=TRUE))
+sums = data.frame(sums)
+
+xbar = mean(sums$sums)
+
+ggplot(sums, aes(sums)) + geom_bar(fill = '#00AFBB')+
+  scale_x_continuous(breaks=seq(2,12)) + xlab('Sum of die rolls') + ylab('Count')
+
+
+```
+
+<br>
+No - This one also looks really similar to our population (mean = `r xbar`). 
+<br>
+The larger our sample size, the more confident we can be in our estimate (the less it is impacted by extreme or unlikely values).
+
+
+## Week 5: Inferential statistics - Does my friend have a weighted coin?
+
+We can use inferential statistics to estimate what is happening in the population. To understand the logic, we will go through an example: Let's say my friend makes a bet with me, every time he flips tails, I get $1, everytime he flips heads, he gets $1. Given the probability of flipping a heads or a tails is 1/2 - I would expect that neither of us will win or lose much money, so I decide to agree to this bet. We agree to do this 30 times. This is the outcome:
+
+```{r flipping the coin 30 times, echo=TRUE}
+set.seed(15)
+n = 30
+outcome = c('heads', 'tails')
+ThirtyFlips = data.frame(Flip =sample(outcome, n, replace = TRUE))
+
+heads_fair = sum(ThirtyFlips$Flip == 'heads')
+tails_fair = sum(ThirtyFlips$Flip == 'tails')
+money_fair = heads_fair - tails_fair
+
+ggplot(ThirtyFlips, aes(x = Flip, fill = Flip)) + geom_bar(stat = 'count') +theme(legend.position = "none")
+
+
+```
+<br>
+My friend made `r money_fair` dollars on this bet - even though I am disappointed, I am not that surprised with the outcome. Each time we flip a coin, there is a 1/2 chance it gets on tails, but it doesn't mean I would expect every single time we flipped 30 coins we would get 15/30 tails. There is randomness in what we get each time we flip a fair coin 30 times. 
+
+What if we got this outcome?
+
+```{r flipping the unfair coin 30 times, echo=TRUE}
+set.seed(3)
+n = 30
+probs = c(.7, .3)
+outcome = c('heads', 'tails')
+ThirtyFlips = data.frame(Flip =sample(outcome, n, replace = TRUE, prob = probs))
+
+heads_weighted = sum(ThirtyFlips$Flip == 'heads')
+tails_weighted = sum(ThirtyFlips$Flip == 'tails')
+money_weighted = heads_weighted - tails_weighted
+
+ggplot(ThirtyFlips, aes(x = Flip, fill = Flip)) + geom_bar(stat = 'count') +theme(legend.position = "none")
+
+
+```
+<br>
+Now I am suspicious. My friend made `r money_weighted` dollars and I am wondering if they may have a weighted coin that ensured they would make a profit?
+
+We can calculate the probability of getting this outcome or one more extreme, if the coin is fair. 
+
+We can do this because we know the probability of each flip: a fair coin has a 1/2 chance of being heads, and 1/2 chance of being tails. What is the chance of us getting an outcome of `r tails_weighted` out of `r n` flips or one more extreme?
+
+```{r is it a fair coin, echo=TRUE}
+#We can use the binomial distribution to calculate this - but don't worry about it for this class
+weighted = round(pbinom(tails_weighted, n, .5), 4)
+fair = round(pbinom(tails_fair, n, .5), 4)
+
+```
+
+The probability of getting an outcome of `r tails_weighted` out of `r n` flips or one more extreme is `r weighted`. If we assume we have a fair coin, `r weighted*100` percent of the time we would expect to get that many tails (or fewer). 
+
+In contrast, in the first example, we got `r tails_fair` out of `r n`. What is the probability of getting that many tails or fewer? `r fair` - so `r fair*100` percent of the time, I would expect to lose at least `r money_fair` dollars.
+
+I might decide that `r weighted*100` percent is a sufficiently unlikely outcome to suggest the coin was not fair, so I accuse my friend of having a weighted coin and refuse to pay him! But I have to understand, that there is still a chance (although very small) that the coin was fair after all - so I could be accusing them of something they didn't do!
+
+**How does this relate to experimental data?**
+
+We can do something similar with our experimental data. We often want to know if two (or more) groups of data come from the same population or not. Generally, we don't know the population value (like we do when flipping a coin), but we can compare the difference between our groups - while considering the variance in our data - to calculate the probability that we would get this difference (or one more extreme) if our samples come from the same population.
+
+For example, maybe I give 20 participants a chocolate ice cream cone, and 20 other participants (randomly assigned) a vanilla ice cream cone. Then I ask them on a scale from 1 to 10, how much they enjoyed their ice cream with 1 being the worst ice cream they ever had and 10 being the best ice cream they ever had. I find that the vanilla group had an average score of 6.2 (SD = 1.5), and the chocolate group had an average score of 7.4 (SD = 1.4). Obviously the groups differ, but do they differ enough to say that chocolate is the more enjoyed flavor of ice cream? 
+
+It's possible we got this difference due to chance - when we sample from a population, we have to remember that there is likely some error in our estimate and other factors can influence participants responses. Maybe one of our participants who got the chocolate ice cream was really happy that day, and rated their ice cream 10 out of 10 because of how great their day was. And maybe we got another participant who got the vanilla ice cream who was having a terrible day, and rated their ice cream 2 out of 10 because of how terrible their day was. Even if everyone else rated their ice cream similarly between the groups, these two outliers would make our means different. This is why we have to consider not just the mean difference, but also the variance in our data and our sample size.
+
+This is where the t.test comes in - we can calculate the likelihood of getting this difference (or one more extreme) if the groups don't truly differ in their ice cream enjoyment. The t-statistic takes into account the mean difference and the variance (or standard deviation) in our data. The probability (or p value) is determined based on the magnitude of the t-statistic, and the degrees of freedom (how many data points we have).
+
+``` {r t.test, echo = TRUE}
+n = 20
+Chocolate = rnorm(n, mean=7.4, sd=1.4)
+Vanilla = rnorm(n, mean=6.2, sd=1.5)
+
+
+t = t.test(Chocolate, Vanilla)
+
+
+```
+In this case, we get a p value = `r round(t$p.value, 4)`, 95% CI [`r round(t$conf.int[1], 2)` , `r round(t$conf.int[2], 2)`]. Given this result, I feel pretty confident that the participants like the chocolate ice cream more than the vanilla ice cream. 
+
+
+## Week 10: Understanding bivariate correlations 
+
+To help you get an intuitive sense of what a correlation represents, I created fake data to show what positive, negative and zero correlations look like, what a correlation coefficient (r value) actually represents, and how small sample sizes are more influenced by outliers. 
+
+Let's start with a perfect correlation - i.e. a r value of 1. What does a perfect positive correlation look like?
+
+```{r positive correlation, echo=TRUE}
+
+x = 1:20
+y = 51:70
+d = data.frame(x, y)
+
+ggplot(data = d, aes(x = x, y = y)) + geom_point(color='#69b3a2') +
+  geom_line(color='#69b3a2') 
+
+
+```
+
+
+A correlation of 1 means there is a perfect linear relationship between x and y. It also means if we know X we can perfectly predict Y (within our sample).
+
+Positive correlations mean when X goes up, Y goes up. This means the regression line will have a positive slope.
+
+**Remember:** Just because two variables are correlated, doesn't mean they causally related (i.e. variable X causes variable Y or vice versa) - even if you have a perfect correlation. 
+
+
+What about a negative correlation with an r value of -1?
+
+```{r negative correlation, echo=TRUE}
+
+x = 1:20
+y = 70:51
+d = data.frame(x, y)
+
+ggplot(data = d, aes(x = x, y = y)) + geom_point(color='#69b3a2') + geom_line(color='#69b3a2')
+
+
+```
+
+Again, there is a perfect linear relationship between x and y but it's going in the opposite direction. 
+
+Negative correlations mean when X goes up, Y goes down. This means the regression line will have a negative slope. 
+
+
+We basically never have a correlation coeffient of 1 - in psychology, our correlations are often much lower. What does this look like? 
+
+```{r smaller correlation, echo=TRUE}
+x = 1:20
+y = c(89, 80, 68, 74, 85, 65, 50, 56, 62, 70, 45, 54, 65, 57, 66, 55, 32, 43, 50, 51)
+c = cor(x,y)
+d = data.frame(x, y)
+
+ggplot(data = d, aes(x = x, y = y)) + geom_point(color='#69b3a2') +
+  geom_smooth(method='lm', color='#69b3a2')
+
+```
+
+This is a correlation of `r round(c,2)`. It's still strong - if we know a value of x, we can pretty accurately predict our value of y (with some error). It's negative, so as x goes up, y goes down. 
+
+```{r even smaller correlation, echo = TRUE}
+
+x = c(30, 25, 30, 5, 20, 19, 10, 21, 29, 18, 20, 19, 11, 12, 20, 7, 7, 15, 10, 12)
+y = c(89, 80, 58, 74, 85, 65, 50, 56, 52, 70, 45, 54, 65, 57, 66, 55, 32, 43, 50, 51)
+c = cor(x,y)
+d = data.frame(x, y)
+
+ggplot(data = d, aes(x = x, y = y)) + geom_point(color='#69b3a2') +
+  geom_smooth(method='lm', color='#69b3a2') 
+
+
+```
+<br>
+This is a correlation of +`r round(c, 2)`. It's a smaller correlation so there is more error in our prediction. We can tell it would be smaller because the dots are more spread out from our regression line. There is a less consistent pattern between x and y - although the regression line still trends up, suggesting a slight (non-significant) positive relationship
+
+
+What does a zero correlation look like? 
+
+```{r zero correlation, echo = TRUE}
+set.seed(10)
+x = sample(1:100, 20, replace = TRUE)
+y = sample(1:100, 20, replace = TRUE)
+c = cor(x, y)
+
+d = data.frame(x, y)
+
+ggplot(data = d, aes(x = x, y = y)) + geom_point(color='#69b3a2') + geom_smooth(method='lm', color='#69b3a2')
+```
+
+You can see - the regression line is basically flat. The r value is `r round(c,2)`. This means we cannot predict y with x - or that knowing x tells us nothing about y.  
+
+
+Let's look at some fake data to get a sense of what a correlation is actually measuring. Imagine this is grade data from five students on their midterm and final exams. Can we predict someones final exam grade based on their midterm grade?
+
+```{r fake data, echo = TRUE}
+
+midterm = c(58, 64, 66, 70, 72)
+xbar_m = mean(midterm)
+final = c(72, 80, 79, 85, 90)
+xbar_f = mean(final)
+Student = c(1:5)
+grades = data.frame(Student, midterm, final)
+
+grades_cor = cor(midterm, final)
+grades
+
+```
+
+
+If you look at each student's scores, can you predict what direction the correlation will go in? Do you think it will be a strong or weak correlation?
+
+Ask yourself - Did the students with the highest grades on the midterm get the highest grades on the final? It seems that way - student 5 had the highest midterm grade and highest final grade. And student 1 had the lowest midterm grade and lowest final grade. This pattern is consistent across all students. This suggests there is a positive relationship between the two variables, and that this relationship is strong.
+
+When we calculate the correlation we get +`r round(grades_cor,2)`. Exactly what we predicted - a positive, strong relationship.
+
+What about this data? What do you predict is going on here?
+
+
+```{r fake data 2, echo = TRUE}
+
+midterm = c(58, 62, 64, 70, 72)
+xbar_m = mean(midterm)
+final = c(90, 82, 85, 70, 74)
+xbar_f = mean(final)
+Student = c(1:5)
+grades = data.frame(Student, midterm, final)
+
+grades_cor = cor(midterm, final)
+grades
+
+```
+
+If you predicted that midterm and final grades are negatively correlated with each other, you'd be right. The student with the highest grade on the midterm has the lowest grade on the final, and the student with the lowest grade on the midterm has the highest grade on the final. As midterm grades go up, final grades go down. 
+
+The correlation for this dataset is `r round(grades_cor,2)`.
+
+What about this dataset?
+
+```{r fake data 3, echo = TRUE}
+
+midterm = c(58, 62, 64, 70, 72)
+xbar_m = mean(midterm)
+final = c(80, 72, 92, 95, 78)
+xbar_f = mean(final)
+Student = c(1:5)
+grades = data.frame(Student, midterm, final)
+
+grades_cor = cor(midterm, final)
+grades
+
+```
+
+The pattern is less clear for this dataset. Student 5 had the highest grade on the midterm, and the second lowest grade on the final. Student 1 had the lowest grade on the midterm, and the third highest grade on the final. Student 4 had the second highest grade on the midterm, and the highest grade on the final. Maybe there is a pattern here, but it's less clear. And when we look at the correlation:  +`r round(grades_cor,2)`, you can see that it's a small (and not significant) relationship.
+
+This last example also tells us something important about sample size and statistical validity. Even though a correlation of +`r round(grades_cor, 2)` might seem meaningful, we also have to consider the sample size. In this case, our sample size was `r length(midterm)` students, so when we look up the probability of getting this large of a correlation by chance, it's pretty high! When interpreting correlation coeffients, we should look at the p-value (or confident interval) to determine whether our r value is statistically significant.
+
+Remember: Small samples are more influenced by outliers - we may get what seems like a large correlation by chance.
+
+Let's go through an example. I have randomly sampled 10 values for x, and 10 values for y. There should theoretically be no relationship between these two variables because they were chosen randomly (and independently from each other).  
+
+``` {r sample size correlation, echo = TRUE}
+set.seed(4)
+x = sample(1:100, 10, replace = TRUE)
+y = sample(1:100, 10, replace = TRUE)
+random_corr = cor.test(x, y)
+
+d = data.frame(x, y)
+
+ggplot(data = d, aes(x= x, y = y)) + geom_point(color='#69b3a2') + geom_smooth(method='lm', color='#69b3a2') + geom_point(data=subset(d, y == max(d$y)), aes(x=x, y=y), color='#69b3a2',size=5)
+```
+
+In this case, I got a correlation of +`r round(random_corr$estimate,2)` - completely due to chance. You can see that one of my data points (the dot that is bigger in the right upper corner) is very high on both variables - this is an outlier, and it's making my correlation a lot stronger. Let's see what happens when I remove that datapoint.
+
+
+``` {r removing outlier, echo = TRUE}
+new_d = subset(d, y < max(d$y))
+random_corr = cor.test(new_d$x, new_d$y)
+
+
+ggplot(data = new_d, aes(x= x, y = y)) + geom_point(color='#69b3a2') + geom_smooth(method='lm', color='#69b3a2') 
+```
+
+Now our correlation is +`r round(random_corr$estimate,2)` - it dropped by a lot, from just removing that one participant. We still have a positive correlation, but it's less strong. 
+
+**Note:** Neither of these two correlation values were statistically significantly different from zero, because our degrees of freedom (sample size - 1) is so low. 
+
+What happens when I randomly select 100 numbers for x and y?
+
+``` {r bigger sample size correlation, echo = TRUE}
+set.seed(4)
+x = sample(1:100, 100, replace = TRUE)
+y = sample(1:100, 100, replace = TRUE)
+random_corr = cor.test(x, y)
+
+d = data.frame(x, y)
+
+ggplot(data = d, aes(x= x, y = y)) + geom_point(color='#69b3a2') + geom_smooth(method='lm', color='#69b3a2') 
+```
+<br>
+You can see, the regression line is flat, and our correlation value is `r round(random_corr$estimate,2)`. Even though we have a few datapoints with high x's and y's, there are many more data points so these outliers don't have as much of an impact on our r value. 
+
+As we learned in week 3, the larger our sample size, the more confident we are in our estimates (whether they are frequency, correlational, or effect size estimates).
+
+
